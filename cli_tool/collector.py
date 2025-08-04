@@ -516,9 +516,13 @@ class UsageCollector:
                 if send_to_api:
                     print("\n📤 Sending complete usage data to dashboard...")
                     if results['cursor']:
-                        await self.send_to_django(results['cursor'])
+                        # Aggregate Cursor data for API transmission
+                        aggregated_cursor = self.aggregate_cursor_data_for_api(results['cursor'])
+                        await self.send_to_django(aggregated_cursor)
                     if results['claude']:
-                        await self.send_to_django(results['claude'])
+                        # Aggregate Claude data for API transmission
+                        aggregated_claude = self.aggregate_claude_data_for_api(results['claude'])
+                        await self.send_to_django(aggregated_claude)
                 
                 # Show next collection time
                 next_collection = time.time() + self.interval_seconds

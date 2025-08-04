@@ -80,7 +80,6 @@ async def run_live_mode():
     
     print("🚀 Starting AI Usage Tracker in LIVE mode")
     print("📊 Data will be sent to your dashboard")
-    print(f"🌐 Dashboard URL: {django_url}")
     print("💡 Press Ctrl+C to stop")
     print("=" * 60)
     
