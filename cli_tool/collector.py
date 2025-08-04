@@ -27,7 +27,7 @@ class UsageCollector:
     - Continuous monitoring with 5-minute intervals
     """
     
-    def __init__(self, jwt_token: str = "", django_url: str = "https://your-django-app.com"):
+    def __init__(self, jwt_token: str = "", django_url: str = "https://api.pricepertoken.com"):
         """
         Initialize the usage collector.
         

@@ -75,7 +75,7 @@ async def run_live_mode():
         print("   4. Or save it with: pricepertoken-ai-coding-tracker --configure your_token")
         return
     
-    django_url = os.getenv("DJANGO_API_URL", "https://your-django-app.com")
+    django_url = os.getenv("DJANGO_API_URL", "https://api.pricepertoken.com")
     collector = UsageCollector(api_token, django_url)
     
     print("🚀 Starting AI Usage Tracker in LIVE mode")
