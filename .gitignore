@@ -330,3 +330,6 @@ test_output/
 config.local
 .env.local
 secrets.env
+
+# API exports (contain real user data)
+cli_tool/api_exports/

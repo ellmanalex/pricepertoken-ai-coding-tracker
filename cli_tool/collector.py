@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import jwt
 import time
 import os
 import httpx
@@ -28,20 +27,16 @@ class UsageCollector:
     - Continuous monitoring with 5-minute intervals
     """
     
-    def __init__(self, api_token: str = "", django_url: str = "https://your-django-app.com"):
+    def __init__(self, jwt_token: str = "", django_url: str = "https://your-django-app.com"):
         """
         Initialize the usage collector.
         
         Args:
-            api_token: User's API token for authentication (can be empty for local mode)
+            jwt_token: User's JWT token for authentication (can be empty for local mode)
             django_url: URL of the Django server
         """
-        self.api_token = api_token
+        self.jwt_token = jwt_token
         self.django_url = django_url
-        
-        # Server JWT secret - will be bundled in distributed binaries
-        # For development, use environment variable
-        self.server_jwt_secret = os.getenv("SERVER_JWT_SECRET", "development-secret-change-in-production")
         
         # Initialize specialized collectors
         self.cursor_collector = CursorCollector()
@@ -89,6 +84,67 @@ class UsageCollector:
         
         return usage_data
     
+    def aggregate_cursor_data_for_api(self, usage_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Aggregate Cursor usage data by date and model for API transmission.
+        """
+        usage_events = usage_data.get('usage_events', [])
+        daily_aggregates = {}
+        
+        for event in usage_events:
+            # Parse date to get just the date part
+            from datetime import datetime
+            try:
+                event_date = datetime.fromisoformat(event['date'].replace('Z', '+00:00')).date()
+                date_key = event_date.isoformat()
+            except:
+                # Fallback if date parsing fails
+                date_key = event['date'].split('T')[0] if 'T' in event['date'] else event['date']
+            
+            model = event.get('model', 'unknown')
+            
+            # Initialize date entry if not exists
+            if date_key not in daily_aggregates:
+                daily_aggregates[date_key] = {}
+            
+            # Initialize model entry if not exists
+            if model not in daily_aggregates[date_key]:
+                daily_aggregates[date_key][model] = {
+                    'input_with_cache': 0,
+                    'input_without_cache': 0,
+                    'cache_read': 0,
+                    'output': 0,
+                    'total_tokens': 0,
+                    'cost': 0.0,
+                    'requests': 0
+                }
+            
+            # Aggregate metrics
+            daily_aggregates[date_key][model]['input_with_cache'] += event.get('input_with_cache', 0)
+            daily_aggregates[date_key][model]['input_without_cache'] += event.get('input_without_cache', 0)
+            daily_aggregates[date_key][model]['cache_read'] += event.get('cache_read', 0)
+            daily_aggregates[date_key][model]['output'] += event.get('output', 0)
+            daily_aggregates[date_key][model]['total_tokens'] += event.get('total_tokens', 0)
+            daily_aggregates[date_key][model]['cost'] += event.get('cost', 0)
+            daily_aggregates[date_key][model]['requests'] += 1
+        
+        # Convert to list format for API
+        daily_data = []
+        for date, models in daily_aggregates.items():
+            for model, metrics in models.items():
+                daily_data.append({
+                    'date': date,
+                    'model': model,
+                    **metrics
+                })
+        
+        return {
+            'tool': 'cursor',
+            'daily_aggregates': daily_data,
+            'collection_info': usage_data.get('collection_info', {}),
+            'metadata': usage_data.get('metadata', {})
+        }
+    
     def collect_claude_usage(self) -> Optional[Dict[str, Any]]:
         """
         Collect Claude Code usage data using the specialized ClaudeCodeCollector.
@@ -114,20 +170,63 @@ class UsageCollector:
         
         return usage_data
     
-    def _create_server_jwt(self) -> str:
+    def aggregate_claude_data_for_api(self, usage_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Create a short-lived server JWT for origin authentication.
-        This proves the request comes from an official CLI binary.
+        Aggregate Claude usage data by date and model for API transmission.
         """
-        payload = {
-            "iss": "ai-usage-tracker-cli",
-            "aud": "django-backend", 
-            "version": "1.0.0",
-            "iat": int(time.time()),
-            "exp": int(time.time()) + 300  # 5 minutes
-        }
+        daily_data = usage_data.get('daily', [])
+        daily_aggregates = []
         
-        return jwt.encode(payload, self.server_jwt_secret, algorithm="HS256")
+        for day_entry in daily_data:
+            if not isinstance(day_entry, dict):
+                continue
+                
+            date = day_entry.get('date')
+            model_breakdowns = day_entry.get('modelBreakdowns', [])
+            
+            # Aggregate by model for this day
+            model_aggregates = {}
+            
+            for breakdown in model_breakdowns:
+                if not isinstance(breakdown, dict):
+                    continue
+                    
+                model_name = breakdown.get('modelName', 'unknown')
+                
+                if model_name not in model_aggregates:
+                    model_aggregates[model_name] = {
+                        'input_tokens': 0,
+                        'output_tokens': 0,
+                        'cache_creation_tokens': 0,
+                        'cache_read_tokens': 0,
+                        'total_tokens': 0,
+                        'cost': 0.0
+                    }
+                
+                # Aggregate metrics for this model
+                model_aggregates[model_name]['input_tokens'] += breakdown.get('inputTokens', 0)
+                model_aggregates[model_name]['output_tokens'] += breakdown.get('outputTokens', 0)
+                model_aggregates[model_name]['cache_creation_tokens'] += breakdown.get('cacheCreationTokens', 0)
+                model_aggregates[model_name]['cache_read_tokens'] += breakdown.get('cacheReadTokens', 0)
+                model_aggregates[model_name]['total_tokens'] += breakdown.get('totalTokens', 0)
+                model_aggregates[model_name]['cost'] += breakdown.get('cost', 0)
+            
+            # Convert to list format for API
+            for model_name, metrics in model_aggregates.items():
+                daily_aggregates.append({
+                    'date': date,
+                    'model': model_name,
+                    **metrics
+                })
+        
+        return {
+            'tool': 'claude',
+            'daily_aggregates': daily_aggregates,
+            'totals': usage_data.get('totals', {}),
+            'collection_info': usage_data.get('collection_info', {}),
+            'metadata': usage_data.get('metadata', {})
+        }
+    
     
     async def collect_both_usage(self) -> Dict[str, Optional[Dict[str, Any]]]:
         """
@@ -230,7 +329,7 @@ class UsageCollector:
     
     async def send_to_django(self, usage_data: Dict[str, Any]) -> bool:
         """
-        Send usage data to Django server with authentication.
+        Send usage data to Django server with JWT authentication.
         
         Args:
             usage_data: Usage data dictionary to send
@@ -238,17 +337,14 @@ class UsageCollector:
         Returns:
             True if successful, False otherwise
         """
-        if not self.api_token:
-            print("❌ No API token configured - cannot send to dashboard")
+        if not self.jwt_token:
+            print("❌ No JWT token configured - cannot send to dashboard")
+            print("   Configure with: pricepertoken-ai-coding-tracker --configure <token>")
             return False
         
-        # Create server JWT for origin authentication
-        server_jwt = self._create_server_jwt()
-        
         headers = {
-            "Authorization": f"Token {self.api_token}",
+            "Authorization": f"Bearer {self.jwt_token}",
             "Content-Type": "application/json",
-            "X-Tracker-Auth": f"ServerBearer {server_jwt}",
             "User-Agent": "ai-usage-tracker-cli/1.0.0"
         }
         
@@ -275,25 +371,48 @@ class UsageCollector:
                 )
                 
                 if response.status_code == 200:
-                    print("✅ Usage data sent successfully")
+                    response_data = response.json()
+                    message = response_data.get('message', 'Usage data sent successfully')
+                    print(f"✅ {message}")
                     return True
                 elif response.status_code == 401:
-                    print("❌ Invalid API token. Please reconfigure with: ai-usage-tracker --configure YOUR_TOKEN")
+                    try:
+                        error_data = response.json()
+                        detail = error_data.get('detail', 'Invalid JWT token')
+                        print(f"❌ Authentication failed: {detail}")
+                        print("   Please refresh your token from the web interface")
+                    except:
+                        print("❌ Invalid JWT token. Please refresh your token from the web interface")
                     return False
                 elif response.status_code == 429:
-                    print("⚠️  Rate limit exceeded. Please try again later.")
+                    try:
+                        error_data = response.json()
+                        detail = error_data.get('detail', 'Rate limit exceeded')
+                        print(f"⚠️  {detail}")
+                    except:
+                        print("⚠️  Rate limit exceeded. Please try again later.")
+                    return False
+                elif response.status_code == 400:
+                    try:
+                        error_data = response.json()
+                        error_msg = error_data.get('error', 'Validation error')
+                        print(f"❌ Validation error: {error_msg}")
+                    except:
+                        print("❌ Bad request - invalid data format")
                     return False
                 elif response.status_code == 413:
                     print("⚠️  Data too large. Try reducing the date range.")
                     return False
                 else:
-                    print(f"❌ Failed to send usage data: {response.status_code}")
+                    print(f"❌ Failed to send usage data: HTTP {response.status_code}")
                     try:
                         error_data = response.json()
                         if 'error' in error_data:
                             print(f"   Error: {error_data['error']}")
+                        elif 'detail' in error_data:
+                            print(f"   Detail: {error_data['detail']}")
                     except:
-                        pass
+                        print(f"   Response: {response.text}")
                     return False
                     
         except Exception as e:
@@ -309,7 +428,9 @@ class UsageCollector:
         """
         usage_data = await self.collect_cursor_usage()
         if usage_data:
-            return await self.send_to_django(usage_data)
+            # Aggregate data for API transmission
+            aggregated_data = self.aggregate_cursor_data_for_api(usage_data)
+            return await self.send_to_django(aggregated_data)
         return False
     
     async def collect_and_send_claude(self) -> bool:
@@ -321,7 +442,9 @@ class UsageCollector:
         """
         usage_data = self.collect_claude_usage()
         if usage_data:
-            return await self.send_to_django(usage_data)
+            # Aggregate data for API transmission
+            aggregated_data = self.aggregate_claude_data_for_api(usage_data)
+            return await self.send_to_django(aggregated_data)
         return False
     
     async def collect_and_send_both(self) -> bool:
@@ -335,13 +458,17 @@ class UsageCollector:
         
         success = True
         if results['cursor']:
-            if not await self.send_to_django(results['cursor']):
+            # Aggregate Cursor data for API transmission
+            aggregated_cursor = self.aggregate_cursor_data_for_api(results['cursor'])
+            if not await self.send_to_django(aggregated_cursor):
                 success = False
         else:
             success = False
         
         if results['claude']:
-            if not await self.send_to_django(results['claude']):
+            # Aggregate Claude data for API transmission
+            aggregated_claude = self.aggregate_claude_data_for_api(results['claude'])
+            if not await self.send_to_django(aggregated_claude):
                 success = False
         else:
             success = False
