@@ -1,0 +1,47 @@
+{
+  "name": "ai-usage-tracker",
+  "version": "1.0.0",
+  "description": "Track and analyze AI usage from Cursor IDE and Claude Code",
+  "main": "index.js",
+  "bin": {
+    "ai-usage-tracker": "./bin/ai-usage-tracker.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node bin/ai-usage-tracker.js --help"
+  },
+  "keywords": [
+    "ai",
+    "usage",
+    "tracking",
+    "cursor",
+    "claude",
+    "tokens",
+    "cost",
+    "analytics"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ai-usage-tracker.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "files": [
+    "bin/",
+    "cli_tool/",
+    "shared/",
+    "scripts/",
+    "README.md",
+    "requirements.txt"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+} 
