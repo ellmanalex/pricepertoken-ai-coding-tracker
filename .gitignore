@@ -333,3 +333,7 @@ secrets.env
 
 # API exports (contain real user data)
 cli_tool/api_exports/
+
+# Development and testing files
+new_version.sh
+cli_tool/test.py
