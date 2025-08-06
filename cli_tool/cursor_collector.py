@@ -331,13 +331,26 @@ class CursorCollector:
         Returns:
             CSV content as string
         """
-        # If no dates provided, use current month
+        # If no dates provided, use ALL available data (from first session to now)
         if not start_date or not end_date:
-            period_start, period_end = self.get_current_month_period()
+            # Get first session date for start
+            first_session_date = self.get_first_session_date()
+            if first_session_date:
+                # Parse first session date
+                try:
+                    first_date = datetime.strptime(first_session_date, "%Y-%m-%d")
+                    start_date = str(int(first_date.timestamp() * 1000))
+                except:
+                    # Fallback to 1 year ago if parsing fails
+                    one_year_ago = datetime.now() - timedelta(days=365)
+                    start_date = str(int(one_year_ago.timestamp() * 1000))
+            else:
+                # Fallback to 1 year ago if no first session date
+                one_year_ago = datetime.now() - timedelta(days=365)
+                start_date = str(int(one_year_ago.timestamp() * 1000))
             
-            # Convert to milliseconds timestamp
-            start_date = str(int(period_start.timestamp() * 1000))
-            end_date = str(int(period_end.timestamp() * 1000))
+            # End date is now
+            end_date = str(int(datetime.now().timestamp() * 1000))
         
         url = f"https://cursor.com/api/dashboard/export-usage-events-csv?startDate={start_date}&endDate={end_date}&showTokenView=true"
         
@@ -347,7 +360,7 @@ class CursorCollector:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:  # Increased timeout for large data
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
                 
@@ -371,11 +384,17 @@ class CursorCollector:
     
     def parse_csv_data(self, csv_content: str) -> dict:
         """
-        Parse CSV usage data into structured format using csv.DictReader.
+        Parse CSV content from Cursor API.
+        
+        Args:
+            csv_content: Raw CSV content from Cursor API
+            
+        Returns:
+            Dictionary with parsed usage data
         """
-        if not csv_content:
-            return {}
-
+        import csv
+        from io import StringIO
+        
         f = StringIO(csv_content)
         reader = csv.DictReader(f)
         usage_events = []
@@ -396,8 +415,11 @@ class CursorCollector:
                 total_tokens_event = int(row.get('Total Tokens', 0))
                 cost_str = row.get('Cost ($)', '').strip('"')
 
+                # Determine if cost is included in subscription
+                included_in_subscription = cost_str in ("Included", "0", "")
+
                 cost = 0.0
-                if cost_str not in ("Included", "0", ""):
+                if not included_in_subscription:
                     try:
                         cost = float(cost_str.replace('$', ''))
                     except ValueError:
@@ -413,7 +435,8 @@ class CursorCollector:
                     "cache_read": cache_read,
                     "output": output,
                     "total_tokens": total_tokens_event,
-                    "cost": cost
+                    "cost": cost,
+                    "included_in_subscription": included_in_subscription
                 }
 
                 usage_events.append(usage_event)
@@ -421,7 +444,6 @@ class CursorCollector:
                 total_cost += cost
 
             except Exception as e:
-                print(f"Warning: Could not parse row: {row} - {e}")
                 continue
 
         return {
@@ -431,6 +453,7 @@ class CursorCollector:
                 "total_tokens": total_tokens,
                 "total_cost": total_cost,
                 "models_used": list(set(event["model"] for event in usage_events)),
+                "kind": list(set(event["kind"] for event in usage_events if event["kind"])),
                 "date_range": {
                     "start": usage_events[0]["date"] if usage_events else None,
                     "end": usage_events[-1]["date"] if usage_events else None

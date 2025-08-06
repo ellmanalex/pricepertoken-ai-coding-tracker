@@ -12,19 +12,16 @@ npm install -g ai-usage-tracker
 
 ### Setup
 
-1. **Register for an account** at [https://your-django-app.com/register/](https://your-django-app.com/register/)
-
-2. **Get your API token** from [https://your-django-app.com/dashboard/](https://your-django-app.com/dashboard/)
-
-3. **Configure the CLI**:
+1. **Try local mode first** (no account required):
    ```bash
-   ai-usage-tracker --configure YOUR_API_TOKEN
+   ai-usage-tracker --local
    ```
 
-4. **Start tracking**:
-   ```bash
-   ai-usage-tracker --collect both
-   ```
+2. **For dashboard mode** (account required):
+   - Register at [https://pricepertoken.com/coding-tracker/]
+   - Get your API token from the dashboard
+   - Configure: `ai-usage-tracker --configure YOUR_API_TOKEN`
+   - Run: `ai-usage-tracker --live`
 
 ## 📊 Usage
 
@@ -33,47 +30,39 @@ npm install -g ai-usage-tracker
 View your usage data locally without sending it anywhere:
 
 ```bash
-# View Cursor usage
-ai-usage-tracker --local cursor
-
-# View Claude usage  
-ai-usage-tracker --local claude
-
-# View both tools
-ai-usage-tracker --local both
+# Monitor both Cursor and Claude usage locally
+ai-usage-tracker --local
 ```
+
+This will continuously monitor your usage and display summaries locally.
 
 ### Dashboard Mode (Account Required)
 
 Send your usage data to your personal dashboard:
 
 ```bash
-# Send Cursor data
-ai-usage-tracker --collect cursor
-
-# Send Claude data
-ai-usage-tracker --collect claude
-
-# Send both tools data
-ai-usage-tracker --collect both
+# Monitor and send data to dashboard
+ai-usage-tracker --live
 ```
 
-### Generate Reports
+This will continuously monitor your usage and send data to your dashboard.
 
-Create detailed usage reports saved to your local machine:
+### Configuration
+
+Set up your API token for dashboard mode:
 
 ```bash
-ai-usage-tracker --report
+# Save your API token
+ai-usage-tracker --configure YOUR_API_TOKEN
 ```
 
 ## 🛠️ Commands
 
 | Command | Description |
 |---------|-------------|
-| `--local <tool>` | View usage locally (cursor, claude, both) |
-| `--collect <tool>` | Send usage to dashboard (cursor, claude, both) |
-| `--report` | Generate comprehensive usage report |
-| `--configure <token>` | Set up your API token |
+| `--local` | Monitor usage locally (no API calls) |
+| `--live` | Monitor usage and send to dashboard |
+| `--configure TOKEN` | Save API token for dashboard mode |
 | `--help` | Show all available options |
 
 ## 📈 What It Tracks
@@ -83,6 +72,8 @@ ai-usage-tracker --report
 - Request counts and costs
 - Cache hit rates
 - Usage over time
+- Kind of requests (chat, completion, etc.)
+- Subscription vs paid usage
 
 ### Claude Code
 - Token consumption
@@ -142,7 +133,7 @@ sudo npm install -g ai-usage-tracker
 
 If you get authentication errors:
 
-1. Check your token at [https://your-django-app.com/dashboard/](https://your-django-app.com/dashboard/)
+1. Check your token at [https://pricepertoken.com/coding-tracker/]
 2. Reconfigure: `ai-usage-tracker --configure NEW_TOKEN`
 
 ### Rate Limits
@@ -168,7 +159,7 @@ MIT License - see LICENSE file for details
 
 ## 🔗 Links
 
-- **Dashboard**: [https://your-django-app.com/](https://your-django-app.com/)
+- **Dashboard**: [https://pricepertoken.com/coding-tracker/](https://pricepertoken.com/coding-tracker/)
 - **GitHub**: [https://github.com/yourusername/ai-usage-tracker](https://github.com/yourusername/ai-usage-tracker)
 - **Issues**: [https://github.com/yourusername/ai-usage-tracker/issues](https://github.com/yourusername/ai-usage-tracker/issues)
 

@@ -86,7 +86,7 @@ class UsageCollector:
     
     def aggregate_cursor_data_for_api(self, usage_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Aggregate Cursor usage data by date and model for API transmission.
+        Aggregate Cursor usage data by date, model, kind, and included_in_subscription for API transmission.
         """
         usage_events = usage_data.get('usage_events', [])
         daily_aggregates = {}
@@ -102,41 +102,39 @@ class UsageCollector:
                 date_key = event['date'].split('T')[0] if 'T' in event['date'] else event['date']
             
             model = event.get('model', 'unknown')
+            kind = event.get('kind', 'unknown')
+            included_in_subscription = event.get('included_in_subscription', False)
             
-            # Initialize date entry if not exists
-            if date_key not in daily_aggregates:
-                daily_aggregates[date_key] = {}
+            # Create unique key for date + model + kind + included_in_subscription
+            aggregate_key = f"{date_key}_{model}_{kind}_{included_in_subscription}"
             
-            # Initialize model entry if not exists
-            if model not in daily_aggregates[date_key]:
-                daily_aggregates[date_key][model] = {
+            # Initialize entry if not exists
+            if aggregate_key not in daily_aggregates:
+                daily_aggregates[aggregate_key] = {
+                    'date': date_key,
+                    'model': model,
+                    'kind': kind,
                     'input_with_cache': 0,
                     'input_without_cache': 0,
                     'cache_read': 0,
                     'output': 0,
                     'total_tokens': 0,
                     'cost': 0.0,
-                    'requests': 0
+                    'requests': 0,
+                    'included_in_subscription': included_in_subscription
                 }
             
             # Aggregate metrics
-            daily_aggregates[date_key][model]['input_with_cache'] += event.get('input_with_cache', 0)
-            daily_aggregates[date_key][model]['input_without_cache'] += event.get('input_without_cache', 0)
-            daily_aggregates[date_key][model]['cache_read'] += event.get('cache_read', 0)
-            daily_aggregates[date_key][model]['output'] += event.get('output', 0)
-            daily_aggregates[date_key][model]['total_tokens'] += event.get('total_tokens', 0)
-            daily_aggregates[date_key][model]['cost'] += event.get('cost', 0)
-            daily_aggregates[date_key][model]['requests'] += 1
+            daily_aggregates[aggregate_key]['input_with_cache'] += event.get('input_with_cache', 0)
+            daily_aggregates[aggregate_key]['input_without_cache'] += event.get('input_without_cache', 0)
+            daily_aggregates[aggregate_key]['cache_read'] += event.get('cache_read', 0)
+            daily_aggregates[aggregate_key]['output'] += event.get('output', 0)
+            daily_aggregates[aggregate_key]['total_tokens'] += event.get('total_tokens', 0)
+            daily_aggregates[aggregate_key]['cost'] += event.get('cost', 0)
+            daily_aggregates[aggregate_key]['requests'] += 1
         
         # Convert to list format for API
-        daily_data = []
-        for date, models in daily_aggregates.items():
-            for model, metrics in models.items():
-                daily_data.append({
-                    'date': date,
-                    'model': model,
-                    **metrics
-                })
+        daily_data = list(daily_aggregates.values())
         
         return {
             'tool': 'cursor',
@@ -318,8 +316,9 @@ class UsageCollector:
                     
                     print(f"{'Claude':<12} {model_name:<30} {model_tokens:>14,} ${model_cost:>8.4f}")
             else:
+                # TODO check if this is working
                 # Fallback to totals if no model breakdown available
-                model_name = "claude-sonnet-4-20250514"
+                model_name = "claude-sonnet-4-20250514 fallback"
                 print(f"{'Claude':<12} {model_name:<30} {tokens:>14,} ${cost:>8.4f}")
         
         # Total row
@@ -365,7 +364,7 @@ class UsageCollector:
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self.django_url}/api/usage/collect/",
+                    f"{self.django_url}/api/coding-tracker/usage/collect/",
                     headers=headers,
                     json=usage_data
                 )
@@ -419,62 +418,6 @@ class UsageCollector:
             print(f"❌ Error sending usage data: {e}")
             return False
     
-    async def collect_and_send_cursor(self) -> bool:
-        """
-        Collect Cursor usage data and send to Django.
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        usage_data = await self.collect_cursor_usage()
-        if usage_data:
-            # Aggregate data for API transmission
-            aggregated_data = self.aggregate_cursor_data_for_api(usage_data)
-            return await self.send_to_django(aggregated_data)
-        return False
-    
-    async def collect_and_send_claude(self) -> bool:
-        """
-        Collect Claude usage data and send to Django.
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        usage_data = self.collect_claude_usage()
-        if usage_data:
-            # Aggregate data for API transmission
-            aggregated_data = self.aggregate_claude_data_for_api(usage_data)
-            return await self.send_to_django(aggregated_data)
-        return False
-    
-    async def collect_and_send_both(self) -> bool:
-        """
-        Collect usage data from both tools and send to Django.
-        
-        Returns:
-            True if both successful, False if either failed
-        """
-        results = await self.collect_both_usage()
-        
-        success = True
-        if results['cursor']:
-            # Aggregate Cursor data for API transmission
-            aggregated_cursor = self.aggregate_cursor_data_for_api(results['cursor'])
-            if not await self.send_to_django(aggregated_cursor):
-                success = False
-        else:
-            success = False
-        
-        if results['claude']:
-            # Aggregate Claude data for API transmission
-            aggregated_claude = self.aggregate_claude_data_for_api(results['claude'])
-            if not await self.send_to_django(aggregated_claude):
-                success = False
-        else:
-            success = False
-        
-        return success
-    
     async def run_continuous_monitoring(self, send_to_api: bool = False) -> None:
         """
         Run continuous monitoring, collecting data every 5 minutes.
@@ -513,6 +456,9 @@ class UsageCollector:
                 self.display_combined_usage_table(results['cursor'], results['claude'])
                 
                 # Send to Django if enabled
+                print("\nNOTE: If Claude Code costs reflect your total token value.")
+                print("\nIf you are using Claude Code through a subscription your tokens are included")
+                print("\nYour Cursor costs reflect overage charges (pay for useage over your subscription amount)")
                 if send_to_api:
                     print("\n📤 Sending complete usage data to dashboard...")
                     if results['cursor']:
@@ -557,6 +503,6 @@ if __name__ == "__main__":
         print("💡 Press Ctrl+C to stop")
         
         # Run continuous monitoring (local mode - no API)
-        await collector.run_continuous_monitoring(send_to_api=False)
+        await collector.run_continuous_monitoring(send_to_api=True)
     
     asyncio.run(main())

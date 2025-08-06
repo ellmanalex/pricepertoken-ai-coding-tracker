@@ -105,7 +105,6 @@ class ClaudeCodeCollector:
         # Get daily usage with breakdown
         usage_data = self.run_ccusage_command(
             "daily",
-            since=since_date,
             until=until_date,
             breakdown=True,
             timezone="UTC"

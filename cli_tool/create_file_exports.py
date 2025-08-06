@@ -17,7 +17,7 @@ from cli_tool.collector import UsageCollector
 async def create_api_exports():
     """
     Create sample files showing what data would be sent to the Django API.
-    This runs the actual collectors and saves the real data.
+    This runs the actual collectors and saves the aggregated data that gets sent to Django.
     """
     print("🚀 Creating API export files...")
     print("📁 Files will be saved in the same directory as this script")
@@ -32,54 +32,33 @@ async def create_api_exports():
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    # 1. Collect Cursor data
+    # 1. Collect and aggregate Cursor data (what gets sent to Django)
     print("\n🔍 Collecting Cursor usage data...")
     try:
         cursor_data = await collector.collect_cursor_usage()
         if cursor_data:
-            cursor_file = exports_dir / f"cursor_data_{timestamp}.json"
+            # Create aggregated data (what actually gets sent to Django)
+            aggregated_cursor = collector.aggregate_cursor_data_for_api(cursor_data)
+            cursor_file = exports_dir / f"cursor_api_data_{timestamp}.json"
             with open(cursor_file, 'w') as f:
-                json.dump(cursor_data, f, indent=2)
-            print(f"✅ Cursor data saved to: {cursor_file}")
-            
-            # Also save a sample of the data structure
-            cursor_sample = {
-                "tool": cursor_data.get('tool'),
-                "collection_info": cursor_data.get('collection_info'),
-                "summary": cursor_data.get('summary'),
-                "billing_period_summary": cursor_data.get('billing_period_summary'),
-                "sample_events": cursor_data.get('usage_events', [])[:3] if cursor_data.get('usage_events') else []
-            }
-            cursor_sample_file = exports_dir / f"cursor_sample_{timestamp}.json"
-            with open(cursor_sample_file, 'w') as f:
-                json.dump(cursor_sample, f, indent=2)
-            print(f"✅ Cursor sample saved to: {cursor_sample_file}")
+                json.dump(aggregated_cursor, f, indent=2)
+            print(f"✅ Cursor API data saved to: {cursor_file}")
         else:
             print("❌ No Cursor data collected")
     except Exception as e:
         print(f"❌ Error collecting Cursor data: {e}")
     
-    # 2. Collect Claude data
+    # 2. Collect and aggregate Claude data (what gets sent to Django)
     print("\n🔍 Collecting Claude usage data...")
     try:
         claude_data = collector.collect_claude_usage()
         if claude_data:
-            claude_file = exports_dir / f"claude_data_{timestamp}.json"
+            # Create aggregated data (what actually gets sent to Django)
+            aggregated_claude = collector.aggregate_claude_data_for_api(claude_data)
+            claude_file = exports_dir / f"claude_api_data_{timestamp}.json"
             with open(claude_file, 'w') as f:
-                json.dump(claude_data, f, indent=2)
-            print(f"✅ Claude data saved to: {claude_file}")
-            
-            # Also save a sample of the data structure
-            claude_sample = {
-                "collection_info": claude_data.get('collection_info'),
-                "totals": claude_data.get('totals'),
-                "daily": claude_data.get('daily', [])[:3] if claude_data.get('daily') else [],
-                "metadata": claude_data.get('metadata')
-            }
-            claude_sample_file = exports_dir / f"claude_sample_{timestamp}.json"
-            with open(claude_sample_file, 'w') as f:
-                json.dump(claude_sample, f, indent=2)
-            print(f"✅ Claude sample saved to: {claude_sample_file}")
+                json.dump(aggregated_claude, f, indent=2)
+            print(f"✅ Claude API data saved to: {claude_file}")
         else:
             print("❌ No Claude data collected")
     except Exception as e:
@@ -134,36 +113,42 @@ async def create_api_exports():
     print("\n🏗️  Creating Django model examples...")
     
     django_models = {
-        "UsageEvent": {
-            "description": "Model for storing individual usage events",
+        "CursorUsageDaily": {
+            "description": "Model for storing daily aggregated Cursor usage data",
             "fields": {
                 "id": "AutoField (primary key)",
                 "user": "ForeignKey to User model",
-                "tool": "CharField (choices: 'cursor', 'claude')",
-                "date": "DateTimeField",
+                "date": "DateField",
                 "model": "CharField (e.g., 'claude-4-sonnet-thinking')",
-                "input_tokens": "IntegerField",
-                "output_tokens": "IntegerField", 
+                "input_with_cache": "IntegerField",
+                "input_without_cache": "IntegerField",
+                "cache_read": "IntegerField",
+                "output": "IntegerField",
                 "total_tokens": "IntegerField",
                 "cost": "DecimalField",
-                "raw_data": "JSONField (stores original event data)",
-                "created_at": "DateTimeField (auto_now_add=True)"
+                "requests": "IntegerField",
+                "kinds": "JSONField (list of unique kinds used)",
+                "included_requests": "IntegerField (requests included in subscription)",
+                "paid_requests": "IntegerField (requests not included in subscription)",
+                "created_at": "DateTimeField (auto_now_add=True)",
+                "updated_at": "DateTimeField (auto_now=True)"
             }
         },
-        "UsageSummary": {
-            "description": "Model for storing aggregated usage summaries",
+        "ClaudeUsageDaily": {
+            "description": "Model for storing daily aggregated Claude usage data",
             "fields": {
                 "id": "AutoField (primary key)",
                 "user": "ForeignKey to User model",
-                "tool": "CharField (choices: 'cursor', 'claude')",
-                "period_start": "DateTimeField",
-                "period_end": "DateTimeField",
-                "total_requests": "IntegerField",
+                "date": "DateField",
+                "model": "CharField (e.g., 'claude-sonnet-4-20250514')",
+                "input_tokens": "IntegerField",
+                "output_tokens": "IntegerField",
+                "cache_creation_tokens": "IntegerField",
+                "cache_read_tokens": "IntegerField",
                 "total_tokens": "IntegerField",
-                "total_cost": "DecimalField",
-                "model_breakdown": "JSONField (stores model-specific stats)",
-                "collection_info": "JSONField (stores metadata)",
-                "created_at": "DateTimeField (auto_now_add=True)"
+                "cost": "DecimalField",
+                "created_at": "DateTimeField (auto_now_add=True)",
+                "updated_at": "DateTimeField (auto_now=True)"
             }
         },
         "User": {
@@ -187,15 +172,13 @@ async def create_api_exports():
     # 5. Create README for the exports
     readme_content = f"""# API Export Files - {timestamp}
 
-This directory contains sample files showing what data would be sent to the Django API.
+This directory contains the exact data that gets sent to the Django API.
 
 ## Files Created:
 
-### Data Files:
-- `cursor_data_{timestamp}.json` - Complete Cursor usage data
-- `cursor_sample_{timestamp}.json` - Sample Cursor data structure
-- `claude_data_{timestamp}.json` - Complete Claude usage data  
-- `claude_sample_{timestamp}.json` - Sample Claude data structure
+### API Data Files:
+- `cursor_api_data_{timestamp}.json` - Exact Cursor data sent to Django API
+- `claude_api_data_{timestamp}.json` - Exact Claude data sent to Django API
 
 ### API Files:
 - `api_headers_{timestamp}.json` - Headers sent with API requests
@@ -213,8 +196,8 @@ This directory contains sample files showing what data would be sent to the Djan
 - `User-Agent: ai-usage-tracker-cli/1.0.0`
 
 ### Data Structure:
-The API receives the complete data structures from the collectors.
-See the sample files for exact formats.
+The API receives daily aggregated data (not individual events).
+See the `*_api_data_*.json` files for exact formats.
 
 ## Django Setup:
 
@@ -222,12 +205,12 @@ See the sample files for exact formats.
 2. Create API endpoint at `/api/usage/collect/`
 3. Implement Token authentication
 4. Validate ServerBearer JWT for origin authentication
-5. Parse and store the usage data
+5. Parse and store the daily aggregated usage data
 
 ## Notes:
-- These files contain real data from your system
-- The data structure may evolve as the collectors are updated
-- Use the sample files to understand the data format
+- These files contain the exact data sent to Django
+- Data is aggregated by date and model (no individual events)
+- Use the API data files to understand the exact format
 """
     
     readme_file = exports_dir / f"README_{timestamp}.md"
@@ -239,7 +222,7 @@ See the sample files for exact formats.
     print("✅ API export files created successfully!")
     print(f"📁 All files saved in: {exports_dir}")
     print("\n💡 Use these files to set up your Django API:")
-    print("   1. Check the data structures in the sample files")
+    print("   1. Check the API data files for exact format")
     print("   2. Create Django models based on django_models file")
     print("   3. Implement the API endpoint at /api/usage/collect/")
     print("   4. Set up authentication and validation")
