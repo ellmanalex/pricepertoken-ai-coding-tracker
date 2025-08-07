@@ -12,8 +12,8 @@ from typing import Optional, Dict, Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cursor_collector import CursorCollector
-from claude_code_collector import ClaudeCodeCollector
+from cli_tool.cursor_collector import CursorCollector
+from cli_tool.claude_code_collector import ClaudeCodeCollector
 
 
 class UsageCollector:
@@ -202,11 +202,17 @@ class UsageCollector:
                     }
                 
                 # Aggregate metrics for this model
-                model_aggregates[model_name]['input_tokens'] += breakdown.get('inputTokens', 0)
-                model_aggregates[model_name]['output_tokens'] += breakdown.get('outputTokens', 0)
-                model_aggregates[model_name]['cache_creation_tokens'] += breakdown.get('cacheCreationTokens', 0)
-                model_aggregates[model_name]['cache_read_tokens'] += breakdown.get('cacheReadTokens', 0)
-                model_aggregates[model_name]['total_tokens'] += breakdown.get('totalTokens', 0)
+                input_tokens = breakdown.get('inputTokens', 0)
+                output_tokens = breakdown.get('outputTokens', 0)
+                cache_creation_tokens = breakdown.get('cacheCreationTokens', 0)
+                cache_read_tokens = breakdown.get('cacheReadTokens', 0)
+                
+                model_aggregates[model_name]['input_tokens'] += input_tokens
+                model_aggregates[model_name]['output_tokens'] += output_tokens
+                model_aggregates[model_name]['cache_creation_tokens'] += cache_creation_tokens
+                model_aggregates[model_name]['cache_read_tokens'] += cache_read_tokens
+                # Calculate total tokens as sum of all token types
+                model_aggregates[model_name]['total_tokens'] += (input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens)
                 model_aggregates[model_name]['cost'] += breakdown.get('cost', 0)
             
             # Convert to list format for API

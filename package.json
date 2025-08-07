@@ -9,7 +9,7 @@
   "scripts": {
     "postinstall": "node scripts/install.js",
     "test": "node bin/ai-usage-tracker.js --help",
-    "build": "pipenv run pyinstaller --onefile cli_tool/cli.py --distpath dist --name cli",
+    "build": "pipenv run pyinstaller --onefile cli_tool/cli.py --distpath dist --name cli && chmod +x dist/cli",
     "build:clean": "rm -rf dist build && npm run build",
     "prepublishOnly": "npm run build"
   },
