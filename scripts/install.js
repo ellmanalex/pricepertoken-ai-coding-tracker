@@ -2,137 +2,97 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const os = require('os');
 
 console.log('🚀 Setting up AI Usage Tracker...');
 
-// Check if Python 3 is available
-function checkPython() {
-    const pythonCommands = ['python3', 'python'];
+// Check if binary exists
+function checkBinary() {
+    const packageDir = path.dirname(__dirname);
+    const platform = os.platform();
     
-    for (const cmd of pythonCommands) {
+    let binaryName = 'cli';
+    if (platform === 'win32') {
+        binaryName += '.exe';
+    }
+    
+    const binaryPath = path.join(packageDir, 'dist', binaryName);
+    
+    if (fs.existsSync(binaryPath)) {
+        console.log(`✅ Found binary: ${binaryName}`);
+        return binaryPath;
+    } else {
+        console.error(`❌ Binary not found at: ${binaryPath}`);
+        console.error('💡 This package should include a pre-built binary.');
+        console.error('   Please reinstall or contact support.');
+        return null;
+    }
+}
+
+// Set executable permissions on Unix systems
+function setExecutablePermissions(binaryPath) {
+    if (os.platform() !== 'win32') {
         try {
-            const result = execSync(`${cmd} --version`, { 
-                stdio: 'pipe',
-                encoding: 'utf8'
-            });
-            
-            if (result.includes('Python 3.')) {
-                console.log(`✅ Found ${result.trim()}`);
-                return cmd;
-            }
+            const { execSync } = require('child_process');
+            execSync(`chmod +x "${binaryPath}"`, { stdio: 'pipe' });
+            console.log('✅ Set executable permissions');
         } catch (e) {
-            continue;
+            console.warn('⚠️  Could not set executable permissions (this is usually okay)');
         }
     }
-    
-    console.error('❌ Python 3 not found.');
-    console.error('💡 Please install Python 3.8 or higher from: https://www.python.org/downloads/');
-    return null;
 }
 
-// Install Python dependencies
-function installDependencies(pythonCmd) {
-    const requirementsFile = path.join(__dirname, '..', 'requirements.txt');
-    
-    if (fs.existsSync(requirementsFile)) {
-        console.log('📦 Installing Python dependencies...');
-        
-        try {
-            // Try pip first, then pip3
-            const pipCommands = [`${pythonCmd} -m pip`, 'pip3', 'pip'];
-            
-            for (const pipCmd of pipCommands) {
-                try {
-                    execSync(`${pipCmd} install -r "${requirementsFile}"`, {
-                        stdio: 'inherit'
-                    });
-                    console.log('✅ Python dependencies installed successfully');
-                    return true;
-                } catch (e) {
-                    continue;
-                }
-            }
-            
-            throw new Error('No pip command worked');
-            
-        } catch (error) {
-            console.warn('⚠️  Failed to install Python dependencies automatically.');
-            console.warn(`💡 Please run manually: ${pythonCmd} -m pip install -r "${requirementsFile}"`);
-            console.warn('   Or install individually:');
-            console.warn('   pip install httpx==0.25.2 PyJWT==2.8.0');
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-// Verify dependencies are installed
-function verifyDependencies(pythonCmd) {
-    console.log('🔍 Verifying dependencies...');
-    
-    const checkScript = `
-import sys
-try:
-    import httpx
-    import jwt
-    print("✅ All dependencies found")
-except ImportError as e:
-    print(f"❌ Missing dependency: {e}")
-    print("💡 Run: pip install httpx==0.25.2 PyJWT==2.8.0")
-    sys.exit(1)
-`;
+// Test the binary
+function testBinary(binaryPath) {
+    console.log('🧪 Testing binary...');
     
     try {
-        execSync(`${pythonCmd} -c "${checkScript}"`, {
-            stdio: 'pipe'
+        const { execSync } = require('child_process');
+        execSync(`"${binaryPath}" --help`, { 
+            stdio: 'pipe',
+            timeout: 10000
         });
+        console.log('✅ Binary test successful');
         return true;
     } catch (e) {
-        console.error('❌ Dependencies verification failed.');
-        console.error('💡 Please install the required Python packages:');
-        console.error('   pip install httpx==0.25.2 PyJWT==2.8.0');
+        console.error('❌ Binary test failed');
+        console.error('💡 The binary may be corrupted or incompatible with your system.');
         return false;
     }
 }
 
 // Main install process
 function main() {
-    const pythonCmd = checkPython();
+    const binaryPath = checkBinary();
     
-    if (pythonCmd) {
-        const depsInstalled = installDependencies(pythonCmd);
+    if (binaryPath) {
+        setExecutablePermissions(binaryPath);
         
-        if (depsInstalled) {
-            const depsVerified = verifyDependencies(pythonCmd);
-            
-            if (depsVerified) {
-                console.log('');
-                console.log('🎉 AI Usage Tracker installed successfully!');
-                console.log('');
-                console.log('📖 Getting Started:');
-                console.log('  1. Try local mode first: pricepertoken-ai-coding-tracker --local');
-                console.log('  2. Get your API token from: https://pricepertoken.com/coding-tracker/');
-                console.log('  3. Configure token: pricepertoken-ai-coding-tracker --configure YOUR_TOKEN');
-                console.log('  4. Send to dashboard: pricepertoken-ai-coding-tracker --live');
-                console.log('');
-                console.log('📚 More commands:');
-                console.log('  pricepertoken-ai-coding-tracker --help     # Show all options');
-                console.log('');
-            } else {
-                console.log('');
-                console.log('⚠️  Installation incomplete due to missing dependencies.');
-                process.exit(1);
-            }
+        const binaryWorks = testBinary(binaryPath);
+        
+        if (binaryWorks) {
+            console.log('');
+            console.log('🎉 AI Usage Tracker installed successfully!');
+            console.log('');
+            console.log('📖 Getting Started:');
+            console.log('  1. Try local mode first: pricepertoken-ai-coding-tracker --local');
+            console.log('  2. Get your API token from: https://pricepertoken.com/coding-tracker/');
+            console.log('  3. Configure token: pricepertoken-ai-coding-tracker --configure YOUR_TOKEN');
+            console.log('  4. Send to dashboard: pricepertoken-ai-coding-tracker --live');
+            console.log('');
+            console.log('📚 More commands:');
+            console.log('  pricepertoken-ai-coding-tracker --help     # Show all options');
+            console.log('');
+            console.log('💡 No Python required - everything is bundled in the binary!');
+            console.log('');
         } else {
             console.log('');
-            console.log('⚠️  Installation incomplete due to dependency installation failure.');
+            console.log('⚠️  Installation incomplete due to binary test failure.');
             process.exit(1);
         }
     } else {
         console.log('');
-        console.log('⚠️  Installation incomplete. Please install Python 3 and run:');
+        console.log('⚠️  Installation incomplete. Please reinstall:');
         console.log('  npm install -g pricepertoken-ai-coding-tracker');
         process.exit(1);
     }
