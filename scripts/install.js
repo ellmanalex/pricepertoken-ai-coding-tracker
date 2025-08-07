@@ -61,19 +61,18 @@ function main() {
         console.log('🎉 AI Usage Tracker installed successfully!');
         console.log('');
         console.log('📖 Getting Started:');
-        console.log('  1. Get your API token from: https://your-django-app.com/dashboard/');
-        console.log('  2. Configure token: ai-usage-tracker --configure YOUR_TOKEN');
-        console.log('  3. View usage locally: ai-usage-tracker --local both');
-        console.log('  4. Send to dashboard: ai-usage-tracker --collect both');
+        console.log('  1. Try local mode first: pricepertoken-ai-coding-tracker --local');
+        console.log('  2. Get your API token from: https://pricepertoken.com/coding-tracker/');
+        console.log('  3. Configure token: pricepertoken-ai-coding-tracker --configure YOUR_TOKEN');
+        console.log('  4. Send to dashboard: pricepertoken-ai-coding-tracker --live');
         console.log('');
         console.log('📚 More commands:');
-        console.log('  ai-usage-tracker --help            # Show all options');
-        console.log('  ai-usage-tracker --report          # Generate detailed report');
+        console.log('  pricepertoken-ai-coding-tracker --help     # Show all options');
         console.log('');
     } else {
         console.log('');
         console.log('⚠️  Installation incomplete. Please install Python 3 and run:');
-        console.log('  npm install -g ai-usage-tracker');
+        console.log('  npm install -g pricepertoken-ai-coding-tracker');
         process.exit(1);
     }
 }

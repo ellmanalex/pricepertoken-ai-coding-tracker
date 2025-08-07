@@ -7,21 +7,21 @@ Track and analyze your AI usage from Cursor IDE and Claude Code with detailed an
 ### Installation
 
 ```bash
-npm install -g ai-usage-tracker
+npm install -g pricepertoken-ai-coding-tracker
 ```
 
 ### Setup
 
 1. **Try local mode first** (no account required):
    ```bash
-   ai-usage-tracker --local
+   pricepertoken-ai-coding-tracker --local
    ```
 
 2. **For dashboard mode** (account required):
    - Register at [https://pricepertoken.com/coding-tracker/]
    - Get your API token from the dashboard
-   - Configure: `ai-usage-tracker --configure YOUR_API_TOKEN`
-   - Run: `ai-usage-tracker --live`
+   - Configure: `pricepertoken-ai-coding-tracker --configure YOUR_API_TOKEN`
+   - Run: `pricepertoken-ai-coding-tracker --live`
 
 ## 📊 Usage
 
@@ -31,7 +31,7 @@ View your usage data locally without sending it anywhere:
 
 ```bash
 # Monitor both Cursor and Claude usage locally
-ai-usage-tracker --local
+pricepertoken-ai-coding-tracker --local
 ```
 
 This will continuously monitor your usage and display summaries locally.
@@ -42,7 +42,7 @@ Send your usage data to your personal dashboard:
 
 ```bash
 # Monitor and send data to dashboard
-ai-usage-tracker --live
+pricepertoken-ai-coding-tracker --live
 ```
 
 This will continuously monitor your usage and send data to your dashboard.
@@ -53,7 +53,7 @@ Set up your API token for dashboard mode:
 
 ```bash
 # Save your API token
-ai-usage-tracker --configure YOUR_API_TOKEN
+pricepertoken-ai-coding-tracker --configure YOUR_API_TOKEN
 ```
 
 ## 🛠️ Commands
@@ -94,7 +94,7 @@ ai-usage-tracker --configure YOUR_API_TOKEN
 
 ```bash
 # Set custom Django server URL
-export DJANGO_API_URL="https://your-custom-domain.com"
+export DJANGO_API_URL="https://api.pricepertoken.com"
 
 # Set API token (alternative to --configure)
 export AI_USAGE_TRACKER_TOKEN="your_token_here"
@@ -126,7 +126,7 @@ pip install -r requirements.txt
 On macOS/Linux, you might need to run:
 
 ```bash
-sudo npm install -g ai-usage-tracker
+sudo npm install -g pricepertoken-ai-coding-tracker
 ```
 
 ### API Token Issues
@@ -134,7 +134,7 @@ sudo npm install -g ai-usage-tracker
 If you get authentication errors:
 
 1. Check your token at [https://pricepertoken.com/coding-tracker/]
-2. Reconfigure: `ai-usage-tracker --configure NEW_TOKEN`
+2. Reconfigure: `pricepertoken-ai-coding-tracker --configure NEW_TOKEN`
 
 ### Rate Limits
 
@@ -160,8 +160,8 @@ MIT License - see LICENSE file for details
 ## 🔗 Links
 
 - **Dashboard**: [https://pricepertoken.com/coding-tracker/](https://pricepertoken.com/coding-tracker/)
-- **GitHub**: [https://github.com/yourusername/ai-usage-tracker](https://github.com/yourusername/ai-usage-tracker)
-- **Issues**: [https://github.com/yourusername/ai-usage-tracker/issues](https://github.com/yourusername/ai-usage-tracker/issues)
+- **GitHub**: [https://github.com/ellmanalex/pricepertoken-ai-coding-tracker](https://github.com/ellmanalex/pricepertoken-ai-coding-tracker)
+- **Issues**: [https://github.com/ellmanalex/pricepertoken-ai-coding-tracker/issues](https://github.com/ellmanalex/pricepertoken-ai-coding-tracker/issues)
 
 ---
 
