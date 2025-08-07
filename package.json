@@ -1,6 +1,6 @@
 {
   "name": "pricepertoken-ai-coding-tracker",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Track and analyze AI usage from Cursor IDE and Claude Code",
   "main": "index.js",
   "bin": {
