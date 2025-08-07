@@ -25,6 +25,18 @@ function getBinaryPath() {
     return binaryPath;
 }
 
+// Ensure binary has execute permissions
+function ensureExecutable(binaryPath) {
+    if (os.platform() !== 'win32') {
+        try {
+            const { execSync } = require('child_process');
+            execSync(`chmod +x "${binaryPath}"`, { stdio: 'pipe' });
+        } catch (e) {
+            // Ignore permission errors
+        }
+    }
+}
+
 // Check if binary exists
 function checkBinary() {
     const binaryPath = getBinaryPath();
@@ -35,6 +47,9 @@ function checkBinary() {
         console.error('💡 Run: npm run build');
         process.exit(1);
     }
+    
+    // Ensure it's executable
+    ensureExecutable(binaryPath);
     
     return binaryPath;
 }
