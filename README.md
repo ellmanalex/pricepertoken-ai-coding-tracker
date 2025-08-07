@@ -10,6 +10,8 @@ Track and analyze your AI usage from Cursor IDE and Claude Code with detailed an
 npm install -g pricepertoken-ai-coding-tracker
 ```
 
+**Note**: This package requires Python 3.8+ to be installed on your system. The installer will automatically install the required Python dependencies.
+
 ### Setup
 
 1. **Try local mode first** (no account required):
@@ -115,11 +117,23 @@ The CLI stores your configuration in `~/.ai-usage-tracker/config`
 
 ### Python Dependencies
 
-If you see dependency errors:
+If you see dependency errors like "No module named 'httpx'":
 
 ```bash
-pip install -r requirements.txt
+# Install required Python packages
+pip install httpx==0.25.2 PyJWT==2.8.0
+
+# Or reinstall the npm package to trigger dependency installation
+npm install -g pricepertoken-ai-coding-tracker
 ```
+
+### Python Not Found
+
+If Python is not found:
+
+1. Install Python 3.8+ from [https://www.python.org/downloads/](https://www.python.org/downloads/)
+2. Make sure `python3` or `python` is in your PATH
+3. Reinstall the npm package: `npm install -g pricepertoken-ai-coding-tracker`
 
 ### Permission Issues
 
