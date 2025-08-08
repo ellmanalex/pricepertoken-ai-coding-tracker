@@ -3,7 +3,9 @@
 import asyncio
 import sys
 import os
+import json
 from pathlib import Path
+from datetime import datetime
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
@@ -36,6 +38,12 @@ async def test_api_data_output():
     print("🌐 API DATA THAT WOULD BE SENT TO DJANGO")
     print("=" * 80)
     
+    # Prepare the data structure that would be sent to the API
+    api_data = {
+        "collection_timestamp": datetime.now().isoformat(),
+        "tools": []
+    }
+    
     # Show what gets sent to Django API
     if results['cursor']:
         print("\n📤 CURSOR DATA FOR API:")
@@ -43,6 +51,7 @@ async def test_api_data_output():
         
         # Aggregate Cursor data for API transmission (same as collector.py)
         aggregated_cursor = collector.aggregate_cursor_data_for_api(results['cursor'])
+        api_data["tools"].append(aggregated_cursor)
         
         # Show the structure that gets sent
         print("Tool:", aggregated_cursor['tool'])
@@ -70,6 +79,7 @@ async def test_api_data_output():
         
         # Aggregate Claude data for API transmission (same as collector.py)
         aggregated_claude = collector.aggregate_claude_data_for_api(results['claude'])
+        api_data["tools"].append(aggregated_claude)
         
         # Show the structure that gets sent
         print("Tool:", aggregated_claude['tool'])
@@ -94,6 +104,21 @@ async def test_api_data_output():
         
         if len(aggregated_claude['daily_aggregates']) > 3:
             print(f"  ... and {len(aggregated_claude['daily_aggregates']) - 3} more entries")
+    
+    # Save the API data to a local JSON file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    json_filename = f"api_data_test_{timestamp}.json"
+    json_filepath = Path(__file__).parent / json_filename
+    
+    try:
+        with open(json_filepath, 'w') as f:
+            json.dump(api_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"\n💾 API data saved to: {json_filepath}")
+        print(f"📁 File size: {json_filepath.stat().st_size:,} bytes")
+        
+    except Exception as e:
+        print(f"\n❌ Error saving JSON file: {e}")
     
     print("\n" + "=" * 80)
     print("✅ Test completed - This is exactly what gets sent to Django API")
