@@ -7,7 +7,7 @@ Track and analyze your AI usage from Cursor IDE and Claude Code with detailed an
 ### Installation
 
 ```bash
-npm install -g pricepertoken-ai-coding-tracker
+npm install -g ppt-tracker
 ```
 
 **Note**: This package requires Python 3.8+ to be installed on your system. The installer will automatically install the required Python dependencies.
@@ -16,46 +16,15 @@ npm install -g pricepertoken-ai-coding-tracker
 
 1. **Try local mode first** (no account required):
    ```bash
-   pricepertoken-ai-coding-tracker --local
+   ppt-tracker --local
    ```
 
 2. **For dashboard mode** (account required):
    - Register at [https://pricepertoken.com/coding-tracker/]
    - Get your API token from the dashboard
-   - Configure: `pricepertoken-ai-coding-tracker --configure YOUR_API_TOKEN`
-   - Run: `pricepertoken-ai-coding-tracker --live`
+   - Configure: `ppt-tracker --configure YOUR_API_TOKEN`
+   - Run: `ppt-tracker --live`
 
-## 📊 Usage
-
-### Local Mode (No Account Required)
-
-View your usage data locally without sending it anywhere:
-
-```bash
-# Monitor both Cursor and Claude usage locally
-pricepertoken-ai-coding-tracker --local
-```
-
-This will continuously monitor your usage and display summaries locally.
-
-### Dashboard Mode (Account Required)
-
-Send your usage data to your personal dashboard:
-
-```bash
-# Monitor and send data to dashboard
-pricepertoken-ai-coding-tracker --live
-```
-
-This will continuously monitor your usage and send data to your dashboard.
-
-### Configuration
-
-Set up your API token for dashboard mode:
-
-```bash
-# Save your API token
-pricepertoken-ai-coding-tracker --configure YOUR_API_TOKEN
 ```
 
 ## 🛠️ Commands
@@ -124,7 +93,7 @@ If you see dependency errors like "No module named 'httpx'":
 pip install httpx==0.25.2 PyJWT==2.8.0
 
 # Or reinstall the npm package to trigger dependency installation
-npm install -g pricepertoken-ai-coding-tracker
+npm install -g ppt-tracker
 ```
 
 ### Python Not Found
@@ -133,14 +102,14 @@ If Python is not found:
 
 1. Install Python 3.8+ from [https://www.python.org/downloads/](https://www.python.org/downloads/)
 2. Make sure `python3` or `python` is in your PATH
-3. Reinstall the npm package: `npm install -g pricepertoken-ai-coding-tracker`
+3. Reinstall the npm package: `npm install -g ppt-tracker`
 
 ### Permission Issues
 
 On macOS/Linux, you might need to run:
 
 ```bash
-sudo npm install -g pricepertoken-ai-coding-tracker
+sudo npm install -g ppt-tracker
 ```
 
 ### API Token Issues
@@ -148,7 +117,7 @@ sudo npm install -g pricepertoken-ai-coding-tracker
 If you get authentication errors:
 
 1. Check your token at [https://pricepertoken.com/coding-tracker/]
-2. Reconfigure: `pricepertoken-ai-coding-tracker --configure NEW_TOKEN`
+2. Reconfigure: `ppt-tracker --configure NEW_TOKEN`
 
 ### Rate Limits
 
