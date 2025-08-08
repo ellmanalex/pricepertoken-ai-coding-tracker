@@ -1,6 +1,6 @@
 {
   "name": "ppt-tracker",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Track and analyze AI usage from Cursor IDE and Claude Code",
   "main": "index.js",
   "bin": {
